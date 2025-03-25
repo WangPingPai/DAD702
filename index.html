@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>迷宮遊戲</title>
     <style>
-        /* 這裡是內嵌的 CSS */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -26,8 +25,8 @@
 
         #maze {
             display: grid;
-            grid-template-columns: repeat(20, 1fr); /* 固定20列 */
-            grid-template-rows: repeat(20, 1fr);    /* 固定20行 */
+            grid-template-columns: repeat(30, 1fr); /* 固定30列 */
+            grid-template-rows: repeat(10, 1fr);    /* 固定10行 */
             gap: 0px;
             position: relative;
             width: 100%;
@@ -77,7 +76,7 @@
         const character = document.getElementById("character");
         const completionMessage = document.getElementById("completion-message");
 
-        const mazeSize = 20;  // 固定20x20 迷宮大小
+        const mazeSize = { x: 30, y: 10 };  // 30x10 迷宮
         const images = {
             wall: 'images/草堆.JPG', // 相對路徑
             path: 'images/路.JPG',   // 相對路徑
@@ -88,17 +87,19 @@
         };
 
         let maze = [];
-        let characterPosition = { x: 0, y: 0 };  // 起始位置設為 (0, 0)
-        let exitPosition = { x: 19, y: 19 }; // 出口位置設為 (19, 19)
+        let characterPosition = { x: 1, y: 1 };  // 起始位置設為 (1, 1)
+        let exitPosition = { x: mazeSize.x - 2, y: mazeSize.y - 2 }; // 出口位置設為 (28, 8)
 
         // 隨機生成迷宮，確保可解
         function generateMaze() {
             maze = [];
-            for (let i = 0; i < mazeSize; i++) {
+            for (let i = 0; i < mazeSize.y; i++) {
                 maze.push([]);
-                for (let j = 0; j < mazeSize; j++) {
-                    if (Math.random() < 0.3) {
-                        maze[i].push('wall');  // 牆壁
+                for (let j = 0; j < mazeSize.x; j++) {
+                    if (i === 0 || i === mazeSize.y - 1 || j === 0 || j === mazeSize.x - 1) {
+                        maze[i].push('wall');  // 外圍加牆
+                    } else if (Math.random() < 0.2) {
+                        maze[i].push('wall');  // 隨機牆壁
                     } else {
                         maze[i].push('path');  // 路徑
                     }
@@ -106,7 +107,7 @@
             }
 
             // 強制人物起始位置及出口位置為路徑
-            maze[0][0] = 'character';
+            maze[characterPosition.y][characterPosition.x] = 'character';
             maze[exitPosition.y][exitPosition.x] = 'door';
 
             // 確保迷宮是可達的（使用深度優先搜尋或其他方法）
@@ -115,10 +116,10 @@
 
         // 使用深度優先搜尋確保迷宮是可達的
         function ensureSolvableMaze() {
-            let visited = Array.from({ length: mazeSize }, () => Array(mazeSize).fill(false));
+            let visited = Array.from({ length: mazeSize.y }, () => Array(mazeSize.x).fill(false));
 
             function dfs(x, y) {
-                if (x < 0 || x >= mazeSize || y < 0 || y >= mazeSize || visited[y][x] || maze[y][x] === 'wall') {
+                if (x < 0 || x >= mazeSize.x || y < 0 || y >= mazeSize.y || visited[y][x] || maze[y][x] === 'wall') {
                     return;
                 }
 
@@ -132,16 +133,16 @@
                 dfs(x, y - 1); // 上
             }
 
-            dfs(0, 0); // 從起始點開始
+            dfs(1, 1); // 從起始點開始
         }
 
         // 渲染迷宮
         function renderMaze() {
             mazeContainer.innerHTML = '';
-            const cellSize = mazeContainer.offsetWidth / mazeSize;  // 計算每個格子的大小
+            const cellSize = mazeContainer.offsetWidth / mazeSize.x;  // 計算每個格子的大小
 
-            for (let i = 0; i < mazeSize; i++) {
-                for (let j = 0; j < mazeSize; j++) {
+            for (let i = 0; i < mazeSize.y; i++) {
+                for (let j = 0; j < mazeSize.x; j++) {
                     const cell = document.createElement("div");
 
                     if (maze[i][j] === 'wall') {
@@ -206,9 +207,12 @@
 
         document.addEventListener('mousemove', (e) => {
             if (isDragging) {
-                // 限制拖動範圍，每次拖動一格
-                let newX = Math.floor((e.clientX - offsetX) / (mazeContainer.offsetWidth / mazeSize));
-                let newY = Math.floor((e.clientY - offsetY) / (mazeContainer.offsetHeight / mazeSize));
+                // 計算人物的目標格子
+                const cellSize = mazeContainer.offsetWidth / mazeSize.x;
+                const newX = Math.floor((e.clientX - offsetX) / cellSize);  // 計算出新的格子位置
+                const newY = Math.floor((e.clientY - offsetY) / cellSize);  // 計算出新的格子位置
+
+                // 每次移動只能在一格內
                 moveCharacterTo(newX, newY);
             }
         });
