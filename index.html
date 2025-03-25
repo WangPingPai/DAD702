@@ -1,0 +1,200 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宮遊戲</title>
+    <style>
+        /* 這裡是內嵌的 CSS */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #maze {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr); /* 固定列數 */
+            grid-template-rows: repeat(20, 1fr);    /* 固定行數 */
+            gap: 0px;
+            position: relative;
+            width: 100%; /* 讓迷宮寬度自適應 */
+            height: 100%; /* 讓迷宮高度自適應 */
+        }
+
+        #maze div {
+            background-size: cover; /* 圖片覆蓋填充 */
+        }
+
+        #character {
+            width: 100%; /* 使人物大小與格子相同 */
+            height: 100%;
+            background-size: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* 當迷宮結束時顯示 */
+        #completion-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="maze"></div>
+        <div id="character"></div>
+        <div id="completion-message">
+            <h2>恭喜完成！</h2>
+            <button onclick="playCompletionVideo()">按此觀看影片</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('JavaScript 已加載');
+
+        const mazeContainer = document.getElementById("maze");
+        const character = document.getElementById("character");
+        const completionMessage = document.getElementById("completion-message");
+
+        const mazeSize = 20;  // 固定 20x20 迷宮
+        const images = {
+            wall: 'images/草堆.JPG', // 相對路徑
+            path: 'images/路.JPG',   // 相對路徑
+            character: 'images/2-3.jpg', // 相對路徑
+            door: 'images/門.JPG', // 相對路徑
+            exit: 'images/2-2.jpg', // 相對路徑
+            video: 'movie/b0cf653b-24e4-4736-ac1e-2894d7febe66.mp4' // 相對路徑
+        };
+
+        let maze = [];
+        let characterPosition = { x: 0, y: 0 };  // 起始位置設為 (0, 0)
+        let exitPosition = { x: 19, y: 19 }; // 出口位置設為 (19, 19)
+
+        // 生成迷宮
+        function generateMaze() {
+            maze = [];
+            for (let i = 0; i < mazeSize; i++) {
+                maze.push([]);
+                for (let j = 0; j < mazeSize; j++) {
+                    if (Math.random() < 0.3) {
+                        maze[i].push('wall');  // 牆壁
+                    } else {
+                        maze[i].push('path');  // 路徑
+                    }
+                }
+            }
+            maze[0][0] = 'character';  // 設置人物起始位置
+            maze[exitPosition.y][exitPosition.x] = 'door';  // 設置門的位置
+        }
+
+        // 渲染迷宮
+        function renderMaze() {
+            mazeContainer.innerHTML = '';
+            for (let i = 0; i < mazeSize; i++) {
+                for (let j = 0; j < mazeSize; j++) {
+                    const cell = document.createElement("div");
+
+                    if (maze[i][j] === 'wall') {
+                        cell.style.backgroundImage = `url(${images.wall})`;
+                    } else if (maze[i][j] === 'path') {
+                        cell.style.backgroundImage = `url(${images.path})`;
+                    } else if (maze[i][j] === 'door') {
+                        cell.style.backgroundImage = `url(${images.door})`;
+                    }
+
+                    mazeContainer.appendChild(cell);
+                }
+            }
+
+            // 更新人物位置
+            const cellSize = mazeContainer.offsetWidth / mazeSize; // 計算每個格子的大小
+            character.style.width = `${cellSize}px`;
+            character.style.height = `${cellSize}px`;
+            character.style.top = characterPosition.y * cellSize + "px";  // 根據格子大小調整人物位置
+            character.style.left = characterPosition.x * cellSize + "px";  // 根據格子大小調整人物位置
+            character.style.backgroundImage = `url(${images.character})`;
+        }
+
+        // 移動人物
+        function moveCharacter(direction) {
+            let newX = characterPosition.x;
+            let newY = characterPosition.y;
+
+            if (direction === 'up' && characterPosition.y > 0) {
+                newY--;
+            } else if (direction === 'down' && characterPosition.y < mazeSize - 1) {
+                newY++;
+            } else if (direction === 'left' && characterPosition.x > 0) {
+                newX--;
+            } else if (direction === 'right' && characterPosition.x < mazeSize - 1) {
+                newX++;
+            }
+
+            // 確保新位置是路徑而非牆壁
+            if (maze[newY][newX] !== 'wall') {
+                characterPosition.x = newX;
+                characterPosition.y = newY;
+            }
+
+            renderMaze();
+
+            // 檢查是否到達出口
+            if (characterPosition.x === exitPosition.x && characterPosition.y === exitPosition.y) {
+                endGame();
+            }
+        }
+
+        // 結束遊戲
+        function endGame() {
+            completionMessage.style.display = 'block';
+        }
+
+        // 播放結束影片
+        function playCompletionVideo() {
+            const video = document.createElement('video');
+            video.src = images.video;
+            video.autoplay = true;
+            video.controls = true;
+            document.body.appendChild(video);
+        }
+
+        // 控制人物移動
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                moveCharacter('up');
+            } else if (e.key === 'ArrowDown') {
+                moveCharacter('down');
+            } else if (e.key === 'ArrowLeft') {
+                moveCharacter('left');
+            } else if (e.key === 'ArrowRight') {
+                moveCharacter('right');
+            }
+        });
+
+        // 初始化
+        generateMaze();
+        renderMaze();
+    </script>
+</body>
+</html>
